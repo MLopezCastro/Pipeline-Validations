@@ -1,17 +1,17 @@
-# Python / venv
+# entornos
 .venv/
-venv/
+.venv_ge311/
+
+# Great Expectations
+gx/
+great_expectations/
+
+# notebooks y data generada localmente
+*.ipynb
+data/**
+
+# artefactos
 __pycache__/
-*.pyc
-.ipynb_checkpoints/
+*.log
+*.html
 
-# VSCode
-.vscode/
-
-# OS
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# Data artifacts
-data/**.tmp

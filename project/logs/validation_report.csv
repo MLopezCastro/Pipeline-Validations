@@ -9,3 +9,5 @@ timestamp,error
 2025-09-26 09:56:10,❌ Existen fechas futuras en 'fecha'
 2025-09-26 10:00:49,❌ Columna monto contiene valores negativos
 2025-09-26 10:00:49,❌ Existen fechas futuras en 'fecha'
+2025-09-26 14:15:07,❌ Columna monto contiene valores negativos
+2025-09-26 14:15:07,❌ Existen fechas futuras en 'fecha'
