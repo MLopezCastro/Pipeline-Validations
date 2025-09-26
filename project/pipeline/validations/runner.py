@@ -4,7 +4,7 @@ import pandas as pd
 from typing import List
 from . import syntactic, semantic, statistical
 
-# logging a archivo + consola
+# logging (archivo + consola)
 def _setup_logging():
     logging.basicConfig(
         filename="project/logs/validation_log.txt",
@@ -27,23 +27,25 @@ def log_errors(errors: List[str]) -> None:
 def run_validations(df: pd.DataFrame) -> None:
     errors: List[str] = []
 
-    # --- Sintácticas ---
-    errors += syntactic.check_column_names(df, ["venta_id","fecha","cliente_id","producto_id","monto","moneda"])
+    # Sintácticas
+    errors += syntactic.check_column_names(
+        df, ["venta_id","fecha","cliente_id","producto_id","monto","moneda"]
+    )
     errors += syntactic.check_types(df, {
         "venta_id": "int64",
-        "fecha": "object",         # luego se parsea a datetime
+        "fecha": "object",
         "cliente_id": "int64",
         "producto_id": "int64",
         "monto": "float64",
         "moneda": "object",
     })
 
-    # --- Semánticas ---
+    # Semánticas
     errors += semantic.check_positive(df, "monto")
     errors += semantic.check_not_future_dates(df, "fecha")
     errors += semantic.check_values_in_domain(df, "moneda", ["ARS","USD","EUR"])
 
-    # --- Estadísticas ---
+    # Estadísticas
     errors += statistical.check_row_count(df, 1, 1_000_000)
 
     if errors:

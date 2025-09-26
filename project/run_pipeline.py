@@ -2,26 +2,18 @@ from __future__ import annotations
 import pandas as pd
 from pathlib import Path
 
-# módulos del pipeline
 from pipeline.extract import read_csv_from_bronze, write_csv_to_bronze
 from pipeline.transform import normalize_types, clean_business_rules
 from pipeline.load import write_silver, write_gold, write_quarantine
 from pipeline.validations.runner import run_validations
 from pipeline.validations.statistical import iqr_outlier_mask
 
-# ----- Paths base -----
-# BASE = carpeta 'project'
-BASE = Path(__file__).resolve().parents[0]
-# ROOT = raíz del repo (donde está 'data' y 'project')
-ROOT = BASE.parents[0]
+BASE = Path(__file__).resolve().parents[0]  # project/
+ROOT = BASE.parents[0]                      # raíz del repo
 
 BRONZE = ROOT / "data" / "bronze"
-SILVER = ROOT / "data" / "silver"
-GOLD = ROOT / "data" / "gold"
-QUAR = ROOT / "data" / "quarantine"
 
 def seed_example_if_needed():
-    """Crea un CSV de ejemplo en bronze si no existe."""
     BRONZE.mkdir(parents=True, exist_ok=True)
     f = BRONZE / "ventas.csv"
     if f.exists():
@@ -39,25 +31,24 @@ def seed_example_if_needed():
     write_csv_to_bronze(ROOT, df, "ventas.csv")
 
 def main():
-    # 0) Semilla si no hay datos
     seed_example_if_needed()
 
-    # 1) EXTRACT
+    # Extract
     df = read_csv_from_bronze(ROOT, "ventas.csv")
 
-    # 2) TRANSFORM (tipos + reglas de negocio básicas)
-    df = normalize_types(df)         # castea fecha y monto
-    df = clean_business_rules(df)    # quita duplicados por venta_id y pone negativos en 0 (ejemplo)
+    # Transform
+    df = normalize_types(df)
+    df = clean_business_rules(df)
 
-    # 3) VALIDATE (no modifica datos)
-    run_validations(df)              # imprime y loguea errores/warnings
+    # Validate (log + consola)
+    run_validations(df)
 
-    # 4) SPLIT OUTLIERS → quarantine (IQR + umbral fijo)
+    # Split outliers → quarantine
     mask_out = iqr_outlier_mask(df["monto"]) | (df["monto"] > 50_000)
     df_ok = df[~mask_out].copy()
     df_q  = df[mask_out].copy()
 
-    # 5) LOAD
+    # Load
     write_silver(ROOT, df_ok, "ventas_silver.csv")
     if not df_q.empty:
         write_quarantine(ROOT, df_q, "ventas_quarantine.csv")
