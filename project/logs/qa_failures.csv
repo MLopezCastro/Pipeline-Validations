@@ -1,0 +1,5 @@
+schema_context,column,check,check_number,failure_case,index
+DataFrameSchema,,column_in_dataframe,,id_venta,
+DataFrameSchema,,column_in_dataframe,,estado,
+Column,monto,greater_than_or_equal_to(0),0,-20.0,2
+Column,monto,greater_than_or_equal_to(0),0,-1.0,6
