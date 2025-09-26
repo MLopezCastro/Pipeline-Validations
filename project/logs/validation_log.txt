@@ -1,0 +1,5 @@
+WARNING | \u274c Falta la columna esperada: producto_id
+WARNING | \u274c Columna producto_id ausente para validar tipos
+WARNING | \u274c Columna monto contiene valores negativos
+WARNING | \u274c Existen fechas futuras en 'fecha'
+WARNING | \u274c Valores fuera de dominio en 'moneda'
