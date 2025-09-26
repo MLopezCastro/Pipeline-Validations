@@ -4,3 +4,11 @@
 2025-09-26 09:41:42,486 - WARNING - pipeline - ❌ Existen fechas futuras en 'fecha'
 2025-09-26 09:41:42,489 - INFO - pipeline - Reportes escritos en: C:\Users\mlope\OneDrive\Escritorio\MLopezCastro\Pipeline Validations\project\logs
 2025-09-26 09:41:42,489 - INFO - pipeline - Ejecución finalizada.
+2025-09-26 09:56:10,640 - INFO - pipeline - Leyendo CSV desde: C:\Users\mlope\OneDrive\Escritorio\MLopezCastro\Pipeline Validations\data\bronze\ventas.csv
+2025-09-26 09:56:10,646 - INFO - pipeline - Validaciones ejecutadas. Errores detectados: 2
+2025-09-26 09:56:10,646 - WARNING - pipeline - ❌ Columna monto contiene valores negativos
+2025-09-26 09:56:10,646 - WARNING - pipeline - ❌ Existen fechas futuras en 'fecha'
+2025-09-26 09:56:10,650 - INFO - pipeline - Reportes escritos en: C:\Users\mlope\OneDrive\Escritorio\MLopezCastro\Pipeline Validations\project\logs
+2025-09-26 09:56:10,657 - INFO - pipeline - SILVER actualizado: C:\Users\mlope\OneDrive\Escritorio\MLopezCastro\Pipeline Validations\data\silver\ventas_silver.csv (rows=7)
+2025-09-26 09:56:10,657 - INFO - pipeline - QUARANTINE actualizado: C:\Users\mlope\OneDrive\Escritorio\MLopezCastro\Pipeline Validations\data\quarantine\ventas_quarantine.csv (rows=5)
+2025-09-26 09:56:10,657 - INFO - pipeline - Ejecución finalizada.
