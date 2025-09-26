@@ -20,3 +20,5 @@ WARNING | \u274c Columna fecha con dtype inesperado: datetime64[ns] (se esperaba
 WARNING | \u274c Valores fuera de dominio en 'moneda'
 WARNING | \u274c Columna fecha con dtype inesperado: datetime64[ns] (se esperaba object)
 WARNING | \u274c Valores fuera de dominio en 'moneda'
+WARNING | \u274c Columna fecha con dtype inesperado: datetime64[ns] (se esperaba object)
+WARNING | \u274c Valores fuera de dominio en 'moneda'
