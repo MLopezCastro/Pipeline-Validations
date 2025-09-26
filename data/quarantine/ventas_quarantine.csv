@@ -1,0 +1,2 @@
+venta_id,fecha,cliente_id,producto_id,monto,moneda
+111,2025-07-18,1006,300,1000000.0,ARS
