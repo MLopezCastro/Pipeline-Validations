@@ -34,55 +34,65 @@ if not csv_path:
 # === Destinos ===
 SILVER_PATH = DATA / "silver" / "ventas_silver.csv"
 QUAR_PATH   = DATA / "quarantine" / "ventas_quarantine.csv"
+GOLD_DIR    = DATA / "gold"
+GOLD_PATH   = GOLD_DIR / "ventas_gold.csv"
+
 SILVER_PATH.parent.mkdir(parents=True, exist_ok=True)
 QUAR_PATH.parent.mkdir(parents=True, exist_ok=True)
+GOLD_DIR.mkdir(parents=True, exist_ok=True)
 
 def route_to_silver_quarantine(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Reglas simples y claras:
-    - Campos clave no nulos: venta_id, cliente_id, producto_id, fecha, monto, moneda
-    - fecha: parseable y NO futura
-    - monto: número y >= 0 (además, descartar outliers groseros > 1e7)
-    - moneda: dentro del dominio {"ARS","USD"}
-    Todo lo que no cumpla -> quarantine. El resto -> silver.
+    Reglas fila-a-fila:
+      - venta_id, cliente_id, producto_id, fecha, monto, moneda: no nulos
+      - fecha parseable y NO futura
+      - monto numérico >= 0 y no outlier grosero (> 1e7)
+      - moneda en {"ARS","USD"}
+    Cumple -> silver; no cumple -> quarantine.
     """
     df2 = df.copy()
 
-    # Tipificar
-    df2["monto"] = pd.to_numeric(df2["monto"], errors="coerce")
-    df2["fecha"] = pd.to_datetime(df2["fecha"], errors="coerce")
+    # Tipificar básico
+    df2["monto"] = pd.to_numeric(df2.get("monto"), errors="coerce")
+    df2["fecha"] = pd.to_datetime(df2.get("fecha"), errors="coerce")
 
     required_cols = ["venta_id", "cliente_id", "producto_id", "fecha", "monto", "moneda"]
     for c in required_cols:
         if c not in df2.columns:
-            df2[c] = pd.NA  # si faltó la columna, todo irá a quarantine (consistente)
+            df2[c] = pd.NA
 
     valid_moneda = {"ARS", "USD"}
     today = pd.Timestamp(datetime.now().date())
 
-    # Reglas fila-a-fila
     mask_invalid = (
-        df2["venta_id"].isna() |
-        df2["cliente_id"].isna() |
-        df2["producto_id"].isna() |
-        df2["fecha"].isna() |
-        (df2["fecha"] > today) |
-        df2["monto"].isna() |
-        (df2["monto"] < 0) |
-        (df2["monto"] > 10_000_000) |     # outlier grosero -> quarantine
-        ~df2["moneda"].isin(valid_moneda)
+        df2["venta_id"].isna()
+        | df2["cliente_id"].isna()
+        | df2["producto_id"].isna()
+        | df2["fecha"].isna()
+        | (df2["fecha"] > today)
+        | df2["monto"].isna()
+        | (df2["monto"] < 0)
+        | (df2["monto"] > 10_000_000)
+        | ~df2["moneda"].isin(valid_moneda)
     )
 
     df_silver = df2[~mask_invalid].copy()
     df_quar   = df2[mask_invalid].copy()
+
+    # Ordenar columnas (cosmético)
+    ordered_cols = [c for c in required_cols if c in df2.columns]
+    other_cols = [c for c in df2.columns if c not in ordered_cols]
+    df_silver = df_silver[ordered_cols + other_cols]
+    df_quar   = df_quar[ordered_cols + other_cols]
+
     return df_silver, df_quar
 
 def main():
-    # 1) Cargar datos
+    # 1) Cargar datos (si hay encabezados raros, pandas igual los toma como strings)
     logger.info(f"Leyendo CSV desde: {csv_path}")
     df = pd.read_csv(csv_path)
 
-    # 2) Validaciones (para reporte/observabilidad)
+    # 2) Validaciones (para observabilidad)
     errors = run_validations(df)
     logger.info(f"Validaciones ejecutadas. Errores detectados: {len(errors)}")
     for e in errors:
@@ -93,12 +103,45 @@ def main():
     save_json_log(errors,      output_path=str(LOGS / "validation_report.json"))
     logger.info(f"Reportes escritos en: {LOGS}")
 
-    # 4) Routing a SILVER / QUARANTINE (fila-a-fila)
+    # 4) Routing a SILVER / QUARANTINE
     df_silver, df_quar = route_to_silver_quarantine(df)
     df_silver.to_csv(SILVER_PATH, index=False)
     df_quar.to_csv(QUAR_PATH, index=False)
     logger.info(f"SILVER actualizado: {SILVER_PATH} (rows={len(df_silver)})")
     logger.info(f"QUARANTINE actualizado: {QUAR_PATH} (rows={len(df_quar)})")
+
+    # 5) GOLD (curado para BI) — idempotente: se sobreescribe en cada run
+    df_gold = df_silver.copy()
+    df_gold.to_csv(GOLD_PATH, index=False)
+    logger.info(f"GOLD actualizado: {GOLD_PATH} (rows={len(df_gold)})")
+
+    # (Opcional) derivados GOLD para BI (agregados rápidos)
+    try:
+        # diario por moneda
+        df_silver["fecha"] = pd.to_datetime(df_silver["fecha"], errors="coerce")
+        gold_daily = (
+            df_silver.dropna(subset=["fecha"])
+                     .groupby([df_silver["fecha"].dt.date, "moneda"], as_index=False)["monto"]
+                     .sum().rename(columns={"fecha": "dia", "monto":"monto_total"})
+        )
+        (GOLD_DIR / "ventas_gold_daily.csv").write_text(
+            gold_daily.to_csv(index=False), encoding="utf-8"
+        )
+
+        # por cliente y moneda
+        gold_cliente = (
+            df_silver.groupby(["cliente_id","moneda"], as_index=False)["monto"]
+                     .sum().rename(columns={"monto":"monto_total"})
+        )
+        (GOLD_DIR / "ventas_gold_by_cliente.csv").write_text(
+            gold_cliente.to_csv(index=False), encoding="utf-8"
+        )
+
+        logger.info(
+            f"GOLD derivados: daily={len(gold_daily)} filas, by_cliente={len(gold_cliente)} filas"
+        )
+    except Exception as ex:
+        logger.warning(f"No pude generar KPIs GOLD opcionales: {ex}")
 
     logger.info("Ejecución finalizada.")
 
